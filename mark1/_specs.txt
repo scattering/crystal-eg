@@ -1,0 +1,2 @@
+Epsilon Greedy with annealing, scaled reward based on chi-squared values, optimizing chi-squared values, and with the z-coordinate of the praseodymium atom parameterized.
+Cutoff: (t > 10) and (chiSq < 1.5) or t > 100
