@@ -1,2 +1,0 @@
-Epsilon Greedy with annealing, scaled reward based on chi-squared values, optimizing chi-squared values, and with the z-coordinate of the Oxygen (d) atom parameterized.
-Cutoff: (t > 10) and chiSq consecutively increases for 3 time steps or t > 100
