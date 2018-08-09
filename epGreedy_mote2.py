@@ -1,19 +1,17 @@
 """
-Filename: epGreedyAnnealing.py
+Filename: epGreedy_mote2.py
 Authors: Ryan Cho and Telon Yan
-Implements a modified epsilon-greedy algorithm for pycrysfml, but can be
-used for similar scenarios. For crystallography, since one may not visit
-individual HKL values more than once, what happens is:
-We have a 1 - epsilon + k*epsilon/n chance of visiting a state/machine
-whose expected reward is highest (e.g. 0.5, there may be ties) and an
-epsilon/n chance of visiting one of the states/slot machines whose
-expected reward is not the highest (where k is the number of states with
-a tied max reward, such as 0.5, and n is the total number of possible HKL
-values to go to next).
-Code borrowed from:
-https://imaddabbura.github.io/blog/data%20science/2018/03/31/epsilon-Greedy-Algorithm.html
-https://github.com/scattering/crystal-rl
-https://github.com/scattering/pycrysfml
+Implements an annealing epsilon-greedy algorithm for choosing a crystal's HKLs
+using pycrysfml [1] and bumps [2].
+The standard epsilon-greedy algorithm as used in multi-armed bandit problems
+must be modified for this problem since in crystallography we do not measure
+at the same HKLs (take the same actions) more than once per simulation. 
+Some code is borrowed from crystal-rl [3], made by Abigail Wilson who worked
+with us on this larger project and an online epsilon-greedy implementation [4].
+[1] https://github.com/scattering/pycrysfml
+[2] https://github.com/bumps/bumps
+[3] https://github.com/scattering/crystal-rl
+[4] https://imaddabbura.github.io/blog/data%20science/2018/03/31/epsilon-Greedy-Algorithm.html
 """
 
 import os,sys;sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
@@ -70,7 +68,7 @@ def setInitParams():
 
 
     #Setting initial values and ranges of parameters to look at
-    m.atomListModel.atomModels[0].z.value = 0.4
+    m.atomListModel.atomModels[0].z.value = 0.5
 #    m.atomListModel.atomModels[0].z.value = random.random()/2
     m.atomListModel.atomModels[0].z.range(0,1)
     #Oxygen d z coordinate
@@ -191,7 +189,7 @@ def test_algorithm(agent, actions, num_sets, num_sims, horizon, numParameters):
 
         print("Training set #" + str(i))
 #	foldername = "set" + str(i) + "_" + str(agent.epsilon)
-	foldername = "TEST1" + str(i) + "_anneal2"
+	foldername = "mote_STARTVAL/set" + str(i)
         os.system("mkdir -p " + foldername)
         #These are for graphing trends in the agent over time
         final_zs = np.zeros(num_sims)
@@ -206,7 +204,7 @@ def test_algorithm(agent, actions, num_sets, num_sims, horizon, numParameters):
 
             #Initialization
             agent.reset()
-            total_reward = 0                           #This is replaced by total_rewards
+            total_reward = 0
             reward = 0
             t = 0
             qSquared = []
@@ -267,6 +265,7 @@ def test_algorithm(agent, actions, num_sets, num_sims, horizon, numParameters):
 #                            reward += 1.5 * abs(chiSq - prevChiSq)
 #                            reward += 1.5 / chiSq
 #			reward = (1/(1+1.2**(-(prevChiSq - chiSq))))*10/(np.sqrt(chiSq))
+                        #TODO THIS IS THE ALL IMPORTANT REWARD FUNCTION
 			reward = (prevChiSq - chiSq) / chiSq
                         rewards[t] = reward
                         agent.update(chosen_action, reward)
@@ -276,9 +275,9 @@ def test_algorithm(agent, actions, num_sets, num_sims, horizon, numParameters):
                 h = chosen_actionList[t].hkl[0]
                 k = chosen_actionList[t].hkl[1]
                 l = chosen_actionList[t].hkl[2]
-                A = 5.417799
-                B = 5.414600
-                C = 12.483399
+                A = 6.33
+                B = 3.469
+                C = 13.919999
 
                 qsq = (h/A)**2 + (k/B)**2 + (l/C)**2
                 qSquared.append(qsq)
@@ -290,25 +289,17 @@ def test_algorithm(agent, actions, num_sets, num_sims, horizon, numParameters):
                 if (simulation % 25 == 0):
                     zs.append(model.atomListModel.atomModels[0].z.value)
 
-
-                #output to files - hardcoded
-
+                #TODO Change the following lines of code depending on what data one's using (hardcoded)
                 file.write("\n" + str(chosen_actionList[t].hkl).replace("[","").replace("]","").replace(",",""))
                 file.write("\t\t\t" + str(round(reward,2)) + "\t\t" + str(round(total_rewards[simulation],2)) + "\t\t" + str(round(chiSq,2)) + "\t\t" + str(round(model.atomListModel.atomModels[0].z.value,5)))
                 file.write("\t" + str(error[chosen_action]) + "\t" + str(tt[chosen_action]) + "\t" + str(sfs2[chosen_action]))
-    #	    file.write("\t" + str(round(model.atomListModel.atomModels[0].B.value,2)))
-    #	    file.write("\t" + str(round(model.atomListModel.atomModels[1].B.value,2)))
-    #	    file.write("\t" + str(round(model.atomListModel.atomModels[2].B.value,2)))
-    #	    file.write("\t" + str(round(model.atomListModel.atomModels[3].B.value,2)))
-    #	    file.write("\t" + str(round(model.atomListModel.atomModels[4].B.value,2)))
-    #	    file.write("\t" + str(round(model.atomListModel.atomModels[5].B.value,2)))
 
-                #TODO Maybe change this cutoff thing
+                #TODO Maybe change this cutoff - really important
                 if (((t > 13) and (chiSqs[t] > chiSqs[t-1]) and (chiSqs[t-1] > chiSqs[t-2]) and (chiSqs[t-2] > chiSqs[t-3])) or (t > 100)):
-    #	    if ((t > 10) and (chiSq < 2)) or t > 100:
+#                if ((t > 10) and (chiSq < 2)) or t > 100:
                     break
 
-	    agent.epsilon = 1 / (np.log(t + 0.0000001) / np.log(3))
+	    agent.epsilon = 1 / (np.log(simulation + 0.0000001) / np.log(3))
 
 	    speeds[simulation] = t
 
@@ -345,22 +336,23 @@ def test_algorithm(agent, actions, num_sets, num_sims, horizon, numParameters):
         #graphs over all simulations
         z_resids = np.zeros(len(final_zs))
         for j in range(len(z_resids)):
-            z_resids[j] = final_zs[j] - 0.35973
+            #TODO THIS IS HARD CODED, CHANGE DEPENDING ON THE DATA
+            z_resids[j] = final_zs[j] - 0.44931
 
         plt.figure()
-        plt.plot(list(range(num_sims)), final_zs)
-	plt.xlabel("Timestep")
-	plt.ylabel("Z Coordinate Approximation")
-	plt.suptitle("Z Approximations")
-        plt.savefig(foldername + "/Z Approximations over Time")
+        plt.scatter(list(range(num_sims)), final_zs)
+	plt.xlabel("Simulation Number")
+	plt.ylabel("Z-Coordinate Approximation")
+	plt.suptitle("Z-Approximations Over Simulations")
+        plt.savefig(foldername + "/ZApproxOverSims")
         plt.close()
 
         plt.figure()
-        plt.plot(list(range(num_sims)), z_resids)
+        plt.scatter(list(range(num_sims)), z_resids)
 	plt.xlabel("Simulation Number")
-	plt.ylabel("Z Residual")
-	plt.suptitle("Z Residuals per Simulation")
-        plt.savefig(foldername + "/Z Approximation Residuals per Simulation")
+	plt.ylabel("Residual")
+	plt.suptitle("Residuals Over Simulations")
+        plt.savefig(foldername + "/ZResidOverSims")
         plt.close()
 
 #        plt.figure()
@@ -372,36 +364,20 @@ def test_algorithm(agent, actions, num_sets, num_sims, horizon, numParameters):
     #    plt.plot(list(range(num_sims)), total_rewards)
     #    plt.savefig("Total Reward per Simulation")
     #    plt.close()
+    
         plt.figure()
         for j in z_progression:
             plt.plot(list(range(len(j))), j)
-        plt.savefig(foldername + "/Z Approximation Comparison")
+	plt.xlabel("Timestep")
+	plt.ylabel("Z-Approximation")
+	plt.suptitle("Z-Approximation Convergence Over Various Simulations")
+        plt.savefig(foldername + "/ZConvOverVarSim")
         plt.close()
 	
-#        agent.epsilon = agent.epsilon + 0.1
     return
 
 
-
-########################################################
-##This stuff was to make an ideal calc sfs2 vs obs sfs2 graph and basically not needed anymore
-#x2 = sfs2#
-
-#model1 = setInitParams()
-#model1.refList = H.ReflectionList(refList)
-#model1._set_reflections()
-#model1.error = error
-#model1.tt  = tt
-#model1._set_observations(sfs2)
-
-#y1 = model1.theory()
-
-#plt.scatter(x2,y1)
-#plt.savefig('sfs2stest.png') 
-#########################################################
-
-
-#agent = EpsilonGreedy(1, np.zeros(len(refList)), np.ones(len(refList)))
+#This is essentially the main function
 agent = EpsilonGreedy(1, np.zeros(len(refList)), np.ones(len(refList)))
-test_algorithm(agent, refList, 1, 80, len(refList), 1)
+test_algorithm(agent, refList, 50, 800, len(refList), 1)
 print("done")
