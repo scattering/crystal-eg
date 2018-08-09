@@ -1,5 +1,5 @@
 """
-Filename: epGreedy_mote2.py
+Filename: epGreedy.py
 Authors: Ryan Cho and Telon Yan
 Implements an annealing epsilon-greedy algorithm for choosing a crystal's HKLs
 using pycrysfml [1] and bumps [2].
@@ -42,6 +42,15 @@ backgFile = None
 observedFile = os.path.join(DATAPATH,r"../simulation.int")
 infoFile = os.path.join(DATAPATH,r"../mote2.cfl")
 
+inFile = open(observedFile, "r")
+inFile.readline()
+inFile.readline()
+inFile.readline()
+line = inFile.readline().split()
+A = float(line[1])
+B = float(line[2])
+C = float(line[3])
+
 #Read data
 spaceGroup, crystalCell, atomList = H.readInfo(infoFile)
 # return wavelength, refList, sfs2, error, two-theta, and four-circle parameters
@@ -56,7 +65,6 @@ for i in range(len(refList)):
     d[str(refList[i].hkl).replace("[","").replace("]","").replace(",","")] = i
 
 
-#TODO This method is hard coded, but it would be better if it were not
 def setInitParams():
     #Make a cell
     cell = Mod.makeCell(crystalCell, spaceGroup.xtalSystem)
@@ -259,13 +267,7 @@ def test_algorithm(agent, actions, num_sets, num_sims, horizon, numParameters):
                 if t > numParameters - 1:
                     x, dx, chiSq = fit(model)
                     if t > numParameters:
-#                        reward = -1 * abs(chiSq - prevChiSq)
-#                        reward = -1 / chiSq
-#                        if (prevChiSq != 0 and chiSq < prevChiSq):
-#                            reward += 1.5 * abs(chiSq - prevChiSq)
-#                            reward += 1.5 / chiSq
-#			reward = (1/(1+1.2**(-(prevChiSq - chiSq))))*10/(np.sqrt(chiSq))
-                        #TODO THIS IS THE ALL IMPORTANT REWARD FUNCTION
+                        #THIS IS THE ALL IMPORTANT REWARD FUNCTION
 			reward = (prevChiSq - chiSq) / chiSq
                         rewards[t] = reward
                         agent.update(chosen_action, reward)
@@ -275,9 +277,6 @@ def test_algorithm(agent, actions, num_sets, num_sims, horizon, numParameters):
                 h = chosen_actionList[t].hkl[0]
                 k = chosen_actionList[t].hkl[1]
                 l = chosen_actionList[t].hkl[2]
-                A = 6.33
-                B = 3.469
-                C = 13.919999
 
                 qsq = (h/A)**2 + (k/B)**2 + (l/C)**2
                 qSquared.append(qsq)
