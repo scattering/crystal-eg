@@ -26,8 +26,8 @@ infoFile = os.path.join(DATAPATH,r"../<your filename here>.cfl")
 
 2) line __: Alter the parameters to suit your variable of interest. 
 
-General formatting involves: 
-m.atomListModel.atomModels[index of your atom of interest].[parameter of interest (coordinate)].value = initial guess
+General formatting involves: <br />
+m.atomListModel.atomModels[index of your atom of interest].[parameter of interest (coordinate)].value = initial guess <br />
 m.atomListModel.atomModels[index of your atom of interest].[parameter of interest (coordinate)].range(lowerBoundaryOfUnitCell, upperBoundaryOfUnitCell)
 
 For example, for our simulated MoTe2 trials, these lines were:
